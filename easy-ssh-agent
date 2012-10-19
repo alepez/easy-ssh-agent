@@ -59,7 +59,6 @@ function start_agent {
   chmod 600 "${SSH_ENV}"
   . "${SSH_ENV}"
   echo "Agent pid ${SSH_AGENT_PID}" >&2
-  test ${OUTPUT_ENV} -eq 1 && cat "${SSH_ENV}"
 }
 
 function start_agent_if_not_running {
@@ -72,6 +71,7 @@ function start_agent_if_not_running {
     start_agent;
   } fi
   test $1 != false && add_identity
+  test ${OUTPUT_ENV} -eq 1 && cat "${SSH_ENV}"
 }
 
 function env_defined {
