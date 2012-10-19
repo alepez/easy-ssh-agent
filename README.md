@@ -34,7 +34,7 @@ Add this to your ~/.bashrc
 
 It will ask for passphrase when you open the first terminal.
 
-### easy-ssh-agent for bash users
+### easy-ssh-agent for zsh users
 
 Add this to your ~/.zshrc
 
