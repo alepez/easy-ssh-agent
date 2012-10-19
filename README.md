@@ -30,7 +30,7 @@ Speed up using of ssh-agent and ssh-add.
 
 Add this to your ~/.bashrc
 
-    easy-ssh-agent
+    eval $( easy-ssh-agent )
 
 It will ask for passphrase when you open the first terminal.
 
@@ -38,7 +38,7 @@ It will ask for passphrase when you open the first terminal.
 
 Add this to your ~/.zshrc
 
-    easy-ssh-agent
+    eval $( easy-ssh-agent )
 
 It will ask for passphrase when you open the first terminal.
     
