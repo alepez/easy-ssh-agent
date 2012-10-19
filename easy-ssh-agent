@@ -185,7 +185,7 @@ if [ ${FORCE_ASKPASS} -eq 1 ] && [ -z "${SSH_ASKPASS}" ]; then {
   exit 2
 } fi
 
-if [ -t 1 ] && [ ${FORCE_ASKPASS} -eq 0 ]; then {
+if [ -t 1 ] && [ ${FORCE_ASKPASS} -eq 0 ] || [ ${OUTPUT_ENV} -eq 1 ]; then {
   main "${COMMAND}"
 } else {
   main "${COMMAND}" &>/dev/null </dev/null &
