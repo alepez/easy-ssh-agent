@@ -3,11 +3,14 @@
 ## easy-ssh-agent
 ## 
 ## Start ssh-agent and ask for default identity passphrase if needed.
-## Export environment variables so ssh-agent is available for all terminals  
+##
+## It can export environment variables so ssh-agent is available for all
+## terminals. Just call
+##
 ##
 
 ##
-## Add options to ssh-agent, like identity lifetime
+## Add options to ssh-agent
 ## See `man ssh-agent` for details
 ##
 SSH_AGENT_OPTIONS=""
@@ -22,6 +25,7 @@ SSH_IDENTITY="${HOME}/.ssh/id_rsa"
 ##
 SSH_ENV="${HOME}/.ssh/environment"
 SSH_AGENT="/usr/bin/ssh-agent"
+SSH_ADD="/usr/bin/ssh-add"
 
 
 ##
@@ -29,26 +33,37 @@ SSH_AGENT="/usr/bin/ssh-agent"
 ##
 
 SSH_AGENT_CMD="${SSH_AGENT}"
-test -n "${SSH_AGENT_OPTIONS}" && SSH_AGENT_CMD+=" ${SSH_AGENT_OPTIONS}"
+OUTPUT_ENV=0
 
 function main {
-  environment_file_exists && . "${SSH_ENV}"
-  if [ "${1}" == 'stop' ]; then {
-    stop_agent_if_running;
-  } else {
-    start_agent_if_not_running;
-  } fi
+  env_defined && . "${SSH_ENV}"
+  case "${1}" in
+  'stop') stop_agent_if_running;;
+  'help') show_usage;;
+  'env') print_env;;
+  'pid') print_pid;;
+  'start') start_agent_if_not_running true;;
+  'start_only') start_agent_if_not_running false;;
+  'export') export_env;;
+  'rm') remove_identity;;
+  'add') add_identity;;
+  '') start_agent_if_not_running;;
+  *) show_usage;;
+  esac
 }
 
 function start_agent {
-  ${SSH_AGENT_CMD} | sed '/^echo/d' > "${SSH_ENV}"
+  test -n "${SSH_AGENT_OPTIONS}" && SSH_AGENT_CMD+=" ${SSH_AGENT_OPTIONS}"
+  echo "#${SSH_AGENT_CMD}" > "${SSH_ENV}"
+  ${SSH_AGENT_CMD} | sed '/^echo/d' >> "${SSH_ENV}"
   chmod 600 "${SSH_ENV}"
   . "${SSH_ENV}"
-  ssh-add "${SSH_IDENTITY}"
+  echo "Agent pid ${SSH_AGENT_PID}" >&2
+  test ${OUTPUT_ENV} -eq 1 && cat "${SSH_ENV}"
 }
 
 function start_agent_if_not_running {
-  if environment_file_exists; then {
+  if env_defined; then {
     . "${SSH_ENV}" > /dev/null
     if ! agent_is_running; then {
       start_agent;
@@ -56,22 +71,92 @@ function start_agent_if_not_running {
   } else {
     start_agent;
   } fi
+  test $1 != false && add_identity
 }
 
-function environment_file_exists {
+function env_defined {
   test -f "${SSH_ENV}"
 }
 
 function agent_is_running {
-  environment_file_exists || return 1
-  ps -ef | grep ${SSH_AGENT_PID} | grep "${SSH_AGENT_CMD}$" >/dev/null
+  env_defined || return 1
+  ps -ef | grep ${SSH_AGENT_PID} | grep "$( head -1 "${SSH_ENV}" | sed 's/^#//' )$" >/dev/null
 }
 
 function stop_agent_if_running {
   if agent_is_running; then {
-    eval $( ${SSH_AGENT} -k )
+    if [ ${OUTPUT_ENV} -eq 1 ]; then {
+      ${SSH_AGENT} -k
+    } else {
+      eval $( ${SSH_AGENT} -k )
+    } fi
   } fi
-  environment_file_exists && rm "${SSH_ENV}"
+  env_defined && rm "${SSH_ENV}"
 }
+
+function print_pid {
+  if env_defined; then {
+    echo ${SSH_AGENT_PID};
+  } fi
+}
+
+function print_env {
+  start_agent_if_not_running
+  cat "${SSH_ENV}"
+}
+
+function export_env {
+  start_agent_if_not_running
+  . "${SSH_ENV}"
+}
+
+function remove_identity {
+  ${SSH_ADD} -d "${SSH_IDENTITY}"
+}
+
+function add_identity {
+  if [ "$( ssh-add -l | awk '{ print $3 }' )" == "${SSH_IDENTITY}" ]; then {
+    return;
+  } fi
+  ${SSH_ADD} "${SSH_IDENTITY}"
+}
+
+function show_usage {
+cat<<EOT
+easy-ssh-agent
+easy-ssh-agent start
+  Start ssh-agent if not already started.
+  Add default identity.
+  Ask for default identity passphrase if needed.
+
+easy-ssh-agent start_only
+  Start ssh-agent if not already started. Do not add identity.
+
+easy-ssh-agent stop
+  Stop ssh-agent if it is running.
+
+easy-ssh-agent help
+  Show this help text.
+
+easy-ssh-agent pid
+  Outputs ssh-agent pid
+
+easy-ssh-agent rm
+  Remove identity from the agent
+
+== Options ==
+
+  --env
+    Outputs environment variables of ssh-agent. Available for start and stop.
+
+EOT
+}
+
+for o in $@; do {
+  if [ "${o:0:2}" == '--' ]; then {
+    if [ "${o:2}" = "env" ]; then OUTPUT_ENV=1; fi
+    if [ "${o:2:5}" = "life=" ]; then SSH_AGENT_OPTIONS+="-t ${o:7}"; fi
+  } fi
+} done
 
 main $@
