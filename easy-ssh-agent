@@ -47,7 +47,7 @@ function main {
   'export') export_env;;
   'rm') remove_identity;;
   'add') add_identity;;
-  '') start_agent_if_not_running;;
+  '') start_agent_if_not_running true;;
   *) show_usage;;
   esac
 }
@@ -70,7 +70,7 @@ function start_agent_if_not_running {
   } else {
     start_agent;
   } fi
-  test $1 != false && add_identity
+  test "$1" != "false" && add_identity
   test ${OUTPUT_ENV} -eq 1 && cat "${SSH_ENV}"
 }
 
@@ -101,12 +101,12 @@ function print_pid {
 }
 
 function print_env {
-  start_agent_if_not_running
+  start_agent_if_not_running true
   cat "${SSH_ENV}"
 }
 
 function export_env {
-  start_agent_if_not_running
+  start_agent_if_not_running true
   . "${SSH_ENV}"
 }
 
