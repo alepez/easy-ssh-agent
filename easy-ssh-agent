@@ -5,8 +5,13 @@
 ## Start ssh-agent and ask for default identity passphrase if needed.
 ##
 ## It can export environment variables so ssh-agent is available for all
-## terminals. Just call
+## terminals. 
 ##
+##
+
+###############################################################################
+##
+## CONFIGURATIONS
 ##
 
 ##
@@ -21,19 +26,30 @@ SSH_AGENT_OPTIONS=""
 SSH_IDENTITY="${HOME}/.ssh/id_rsa"
 
 ##
+## Uncomment your favorite askpass
+##
+#SSH_ASKPASS=/usr/bin/ksshaskpass
+#SSH_ASKPASS=/usr/bin/ssh-askpass-fullscreen
+#SSH_ASKPASS=/usr/bin/x11-ssh-askpass
+
+##
 ## Other variables, should not be changed
 ##
 SSH_ENV="${HOME}/.ssh/environment"
 SSH_AGENT="/usr/bin/ssh-agent"
 SSH_ADD="/usr/bin/ssh-add"
 
-
+###############################################################################
 ##
-## DO NOT EDIT BEHIND THIS LINE
+## DO NOT EDIT BELOW THIS LINE
 ##
 
 SSH_AGENT_CMD="${SSH_AGENT}"
 OUTPUT_ENV=0
+EXPORT_ENV=0
+FORCE_ASKPASS=0
+
+export SSH_ASKPASS
 
 function main {
   env_defined && . "${SSH_ENV}"
@@ -44,7 +60,6 @@ function main {
   'pid') print_pid;;
   'start') start_agent_if_not_running true;;
   'start_only') start_agent_if_not_running false;;
-  'export') export_env;;
   'rm') remove_identity;;
   'add') add_identity;;
   '') start_agent_if_not_running true;;
@@ -54,8 +69,8 @@ function main {
 
 function start_agent {
   test -n "${SSH_AGENT_OPTIONS}" && SSH_AGENT_CMD+=" ${SSH_AGENT_OPTIONS}"
-  echo "#${SSH_AGENT_CMD}" > "${SSH_ENV}"
-  ${SSH_AGENT_CMD} | sed '/^echo/d' >> "${SSH_ENV}"
+  ${SSH_AGENT_CMD} | sed '/^echo/d' > "${SSH_ENV}"
+  echo "#${SSH_AGENT_CMD}" >> "${SSH_ENV}"
   chmod 600 "${SSH_ENV}"
   . "${SSH_ENV}"
   echo "Agent pid ${SSH_AGENT_PID}" >&2
@@ -80,7 +95,7 @@ function env_defined {
 
 function agent_is_running {
   env_defined || return 1
-  ps -ef | grep ${SSH_AGENT_PID} | grep "$( head -1 "${SSH_ENV}" | sed 's/^#//' )$" >/dev/null
+  ps -ef | grep ${SSH_AGENT_PID} | grep "$( tail -1 "${SSH_ENV}" | sed 's/^#//' )$" >/dev/null
 }
 
 function stop_agent_if_running {
@@ -103,11 +118,6 @@ function print_pid {
 function print_env {
   start_agent_if_not_running true
   cat "${SSH_ENV}"
-}
-
-function export_env {
-  start_agent_if_not_running true
-  . "${SSH_ENV}"
 }
 
 function remove_identity {
@@ -141,6 +151,9 @@ easy-ssh-agent help
 easy-ssh-agent pid
   Outputs ssh-agent pid
 
+easy-ssh-agent add
+  Add default identity to the agent
+
 easy-ssh-agent rm
   Remove identity from the agent
 
@@ -149,14 +162,31 @@ easy-ssh-agent rm
   --env
     Outputs environment variables of ssh-agent. Available for start and stop.
 
+  --force-askpass
+    Force using of SSH_ASKPASS, like if it isn't run from a terminal
+
 EOT
 }
 
+COMMAND=""
 for o in $@; do {
   if [ "${o:0:2}" == '--' ]; then {
     if [ "${o:2}" = "env" ]; then OUTPUT_ENV=1; fi
+    if [ "${o:2}" = "force-askpass" ]; then FORCE_ASKPASS=1; fi
     if [ "${o:2:5}" = "life=" ]; then SSH_AGENT_OPTIONS+="-t ${o:7}"; fi
-  } fi
+  } else {
+    if [ -n "${COMMAND}" ]; then show_usage; exit 1; fi
+    COMMAND="$o"
+	} fi
 } done
 
-main $@
+if [ ${FORCE_ASKPASS} -eq 1 ] && [ -z "${SSH_ASKPASS}" ]; then {
+  echo "Cannot force askpass if SSH_ASKPASS is not set."
+  exit 2
+} fi
+
+if [ -t 1 ] && [ ${FORCE_ASKPASS} -eq 0 ] || [ ${OUTPUT_ENV} -eq 1 ]; then {
+  main "${COMMAND}"
+} else {
+  main "${COMMAND}" &>/dev/null </dev/null &
+} fi
