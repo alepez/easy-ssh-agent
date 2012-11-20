@@ -1,0 +1,20 @@
+#!/bin/bash
+
+function g_lazy() {
+  git add .
+  git commit
+}
+
+function g_lazy_push() {
+  g_lazy
+  git push
+}
+
+case $1 in
+l) g_lazy; exit;;
+lazy) g_lazy; exit;;
+lp) g_lazy_push; exit;;
+lazy-push g_lazy_push; exit;;
+esac
+
+git $@
