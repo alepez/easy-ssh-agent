@@ -14,7 +14,7 @@ case $1 in
 l) g_lazy; exit;;
 lazy) g_lazy; exit;;
 lp) g_lazy_push; exit;;
-lazy-push g_lazy_push; exit;;
+lazy-push) g_lazy_push; exit;;
 esac
 
 git $@
