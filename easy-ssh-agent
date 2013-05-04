@@ -171,13 +171,14 @@ EOT
 COMMAND=""
 for o in $@; do {
   if [ "${o:0:2}" == '--' ]; then {
-    if [ "${o:2}" = "env" ]; then OUTPUT_ENV=1; fi
-    if [ "${o:2}" = "force-askpass" ]; then FORCE_ASKPASS=1; fi
-    if [ "${o:2:5}" = "life=" ]; then SSH_AGENT_OPTIONS+="-t ${o:7}"; fi
+    if [ "${o:2}" == "env" ]; then OUTPUT_ENV=1; fi
+    if [ "${o:2}" == "force-askpass" ]; then FORCE_ASKPASS=1; fi
+    if [ "${o:2:5}" == "life=" ]; then SSH_AGENT_OPTIONS+="-t ${o:7}"; fi
+    if [ "${o:2}" == "help" ]; then show_usage; exit 1; fi
   } else {
     if [ -n "${COMMAND}" ]; then show_usage; exit 1; fi
     COMMAND="$o"
-	} fi
+  } fi
 } done
 
 if [ ${FORCE_ASKPASS} -eq 1 ] && [ -z "${SSH_ASKPASS}" ]; then {
