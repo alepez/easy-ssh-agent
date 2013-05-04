@@ -1,17 +1,33 @@
-# Bash Script Collection
+# easy-ssh-agent
 
-This is a collection of bash script I often use.
+Speed up using of ssh-agent and ssh-add.
 
-### Installation
+ - Support for SSH_ASKPASS
+ - Fast integration with graphical system.
+ - Support for identity lifetime
+ - Available in all terminals, even if started from X
 
-I suggest to install them in `/usr/local/bin` if you have root access or in
-`~/bin` if you do not. If you add these scripts in `~/bin`, you need to add
-this directory in your PATH environment variable. To do so, edit your `.bashrc`
-(create it if you haven't) and add these line:
+## easy-ssh-agent for bash users
 
-    export PATH="${PATH}:~/bin"
+Add this to your ~/.bashrc
 
-Remeber to add exec permission with
+    eval $( easy-ssh-agent start --env )
 
-    chmod +x /path/to/script
+It will ask for passphrase when you open the first terminal.
 
+## easy-ssh-agent for zsh users
+
+Add this to your ~/.zshrc
+
+    eval $( easy-ssh-agent start --env )
+
+It will ask for passphrase when you open the first terminal.
+    
+### easy-ssh-agent for kde4 users
+
+Add this to ~/.kde4/env/easy-ssh-agent.sh
+	
+	#!/bin/sh
+	easy-ssh-agent start --env    
+
+It will ask for passphrase during kde startup. ksshaskpass or similar is needed
